@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/cirruslabs/echelon"
-	"github.com/cirruslabs/echelon/renderers"
+	"github.com/roberChen/echelon"
+	"github.com/roberChen/echelon/renderers"
 	"math/rand"
 	"os"
 	"sync/atomic"

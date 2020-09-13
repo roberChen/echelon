@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/cirruslabs/echelon/terminal"
+	"github.com/roberChen/echelon/terminal"
 	"runtime"
 	"time"
 )

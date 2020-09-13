@@ -3,7 +3,7 @@ package terminal_test
 import (
 	"bufio"
 	"bytes"
-	"github.com/cirruslabs/echelon/terminal"
+	"github.com/roberChen/echelon/terminal"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
