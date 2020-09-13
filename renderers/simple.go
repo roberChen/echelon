@@ -71,10 +71,12 @@ func (r SimpleRenderer) RenderScopeFinished(entry *echelon.LogScopeFinished) {
 	}
 }
 
+// RenderMessage will render message from entry for simple renderer
 func (r SimpleRenderer) RenderMessage(entry *echelon.LogEntryMessage) {
 	r.renderEntry(entry.GetMessage())
 }
 
+// renderEntry will render message of simple renderer
 func (r SimpleRenderer) renderEntry(message string) {
 	_, _ = r.out.Write([]byte(message + "\n"))
 }

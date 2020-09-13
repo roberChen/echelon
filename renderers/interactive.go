@@ -62,6 +62,7 @@ func (r *InteractiveRenderer) RenderScopeFinished(entry *echelon.LogScopeFinishe
 	}
 }
 
+// RenderMessage will render message from entry
 func (r *InteractiveRenderer) RenderMessage(entry *echelon.LogEntryMessage) {
 	findScopedNode(entry.GetScopes(), r).AppendDescription(entry.GetMessage() + "\n")
 }
