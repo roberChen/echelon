@@ -2,9 +2,9 @@ package node
 
 import (
 	"fmt"
-	"github.com/cirruslabs/echelon/renderers/config"
-	"github.com/cirruslabs/echelon/terminal"
-	"github.com/cirruslabs/echelon/utils"
+	"github.com/roberChen/echelon/renderers/config"
+	"github.com/roberChen/echelon/terminal"
+	"github.com/roberChen/echelon/utils"
 	"golang.org/x/text/width"
 	"strings"
 	"sync"

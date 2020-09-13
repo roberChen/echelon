@@ -2,10 +2,10 @@ package renderers
 
 import (
 	"fmt"
-	"github.com/cirruslabs/echelon"
-	"github.com/cirruslabs/echelon/renderers/internal/console"
-	"github.com/cirruslabs/echelon/terminal"
-	"github.com/cirruslabs/echelon/utils"
+	"github.com/roberChen/echelon"
+	"github.com/roberChen/echelon/renderers/internal/console"
+	"github.com/roberChen/echelon/terminal"
+	"github.com/roberChen/echelon/utils"
 	"io"
 	"strings"
 	"time"

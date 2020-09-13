@@ -2,11 +2,11 @@ package renderers
 
 import (
 	"bufio"
-	"github.com/cirruslabs/echelon"
-	"github.com/cirruslabs/echelon/renderers/config"
-	"github.com/cirruslabs/echelon/renderers/internal/console"
-	"github.com/cirruslabs/echelon/renderers/internal/node"
-	"github.com/cirruslabs/echelon/terminal"
+	"github.com/roberChen/echelon"
+	"github.com/roberChen/echelon/renderers/config"
+	"github.com/roberChen/echelon/renderers/internal/console"
+	"github.com/roberChen/echelon/renderers/internal/node"
+	"github.com/roberChen/echelon/terminal"
 	"os"
 	"sync"
 	"time"
