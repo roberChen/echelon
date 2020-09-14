@@ -12,9 +12,17 @@ import (
 	"time"
 )
 
+// resetAutoWrap, \u001B(16) == \033(10) == \x1b(16) == ESC key.
+//
+// ESC[={value}l : Resets the mode by using the same values that 
+// Set Mode uses, except for 7, which disables line wrapping. The 
+// last character in this escape sequence is a lowercase L.
 const resetAutoWrap = "\u001B[?7l"
 const defaultFrameBufSize = 38400 // 80 by 120 of 4 bytes UTF-8 characters
 
+// InteractiveRenderer is a interactive rendere which is a dynamic one. 
+//
+// It conains a bufio.Writer for output, a root node and terminal height
 type InteractiveRenderer struct {
 	out               *bufio.Writer
 	rootNode          *node.EchelonNode
@@ -24,6 +32,7 @@ type InteractiveRenderer struct {
 	terminalHeight    int
 }
 
+// NewInteractiveRenderer creates a new InteractiveRenderer
 func NewInteractiveRenderer(out *os.File, rendererConfig *config.InteractiveRendererConfig) *InteractiveRenderer {
 	if rendererConfig == nil {
 		rendererConfig = config.NewDefaultRenderingConfig()
@@ -36,6 +45,8 @@ func NewInteractiveRenderer(out *os.File, rendererConfig *config.InteractiveRend
 	}
 }
 
+// findScopeNode will return node with path 'scopes' in InteractiveRenderer, if the
+// node does not exist, it will create one
 func findScopedNode(scopes []string, r *InteractiveRenderer) *node.EchelonNode {
 	result := r.rootNode
 	for _, scope := range scopes {
@@ -44,10 +55,15 @@ func findScopedNode(scopes []string, r *InteractiveRenderer) *node.EchelonNode {
 	return result
 }
 
+// RenderScopeStarted starts render the node specified by the entry
 func (r *InteractiveRenderer) RenderScopeStarted(entry *echelon.LogScopeStarted) {
 	findScopedNode(entry.GetScopes(), r).Start()
 }
 
+// RenderScopeFinished will render an finished node specified by entry. 
+//
+// If the node is succeeded, all sub nodes (which must be succeeded as well) will hides. 
+// If the node is failed, the node will keep showing at output with FailureColor(red)
 func (r *InteractiveRenderer) RenderScopeFinished(entry *echelon.LogScopeFinished) {
 	n := findScopedNode(entry.GetScopes(), r)
 	if entry.Success() {
@@ -62,11 +78,15 @@ func (r *InteractiveRenderer) RenderScopeFinished(entry *echelon.LogScopeFinishe
 	}
 }
 
-// RenderMessage will render message from entry
+// RenderMessage will render message of node specified by entry, it will add the messages of
+// entry to the node.
 func (r *InteractiveRenderer) RenderMessage(entry *echelon.LogEntryMessage) {
 	findScopedNode(entry.GetScopes(), r).AppendDescription(entry.GetMessage() + "\n")
 }
 
+// StartDrawing will start drawing Interactiverenderer until the root node has completed
+//
+// Each two frame has a time gap which can be configured in InteractiveRenderer.config.RefreshRate
 func (r *InteractiveRenderer) StartDrawing() {
 	_ = console.PrepareTerminalEnvironment()
 	// don't wrap lines since it breaks incremental redraws
@@ -77,12 +97,16 @@ func (r *InteractiveRenderer) StartDrawing() {
 	}
 }
 
+// StopDrawing will stop the InteractiveRenderer, it will complete the root node and draw final frame
 func (r *InteractiveRenderer) StopDrawing() {
 	r.rootNode.Complete()
 	// one last redraw
 	r.DrawFrame()
 }
 
+// DrawFrame will first generate full output lines and put it to terminal.
+//
+// This function is coroutine safe.
 func (r *InteractiveRenderer) DrawFrame() {
 	r.drawLock.Lock()
 	defer r.drawLock.Unlock()

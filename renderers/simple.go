@@ -11,12 +11,15 @@ import (
 	"time"
 )
 
+// SimpleRenderer is a simple renderer with an io.Writer for output, a color for output
+// color, and a map to save time  stamps. The key of time stamps is the path of scope.
 type SimpleRenderer struct {
 	out        io.Writer
 	colors     *terminal.ColorSchema
 	startTimes map[string]time.Time
 }
 
+// NewSimpleRenderer creates a simple renderer
 func NewSimpleRenderer(out io.Writer, colors *terminal.ColorSchema) *SimpleRenderer {
 	if colors == nil {
 		colors = terminal.DefaultColorSchema()
@@ -28,7 +31,7 @@ func NewSimpleRenderer(out io.Writer, colors *terminal.ColorSchema) *SimpleRende
 		startTimes: make(map[string]time.Time),
 	}
 }
-
+// RenderScopeStarted function of SimpleRenderer, it will start rendering an message of entry.
 func (r SimpleRenderer) RenderScopeStarted(entry *echelon.LogScopeStarted) {
 	scopes := entry.GetScopes()
 	level := len(scopes)
@@ -46,6 +49,7 @@ func (r SimpleRenderer) RenderScopeStarted(entry *echelon.LogScopeStarted) {
 	r.renderEntry(message)
 }
 
+// RenderScopeFinished will render a finished entry, which will print to task result of an entry.
 func (r SimpleRenderer) RenderScopeFinished(entry *echelon.LogScopeFinished) {
 	scopes := entry.GetScopes()
 	level := len(scopes)
@@ -71,16 +75,19 @@ func (r SimpleRenderer) RenderScopeFinished(entry *echelon.LogScopeFinished) {
 	}
 }
 
-// RenderMessage will render message from entry for simple renderer
+// RenderMessage will render message from entry for simple renderer, it sends message of 
+// entry to renderEntry of renderer.
 func (r SimpleRenderer) RenderMessage(entry *echelon.LogEntryMessage) {
 	r.renderEntry(entry.GetMessage())
 }
 
-// renderEntry will render message of simple renderer
+// renderEntry will render message of simple renderer, it directly output the message to io.Writer of SimpleRenderer
 func (r SimpleRenderer) renderEntry(message string) {
 	_, _ = r.out.Write([]byte(message + "\n"))
 }
 
+// ScopeHasStarted returns whether the scope specified by path 'scpoes' has started. A finished scope is still 
+// started.
 func (r SimpleRenderer) ScopeHasStarted(scopes []string) bool {
 	level := len(scopes)
 	if level == 0 {
@@ -91,6 +98,7 @@ func (r SimpleRenderer) ScopeHasStarted(scopes []string) bool {
 	return result
 }
 
+// quotedIfNeeded will quotes string with ' if no ' or " appears in string
 func quotedIfNeeded(s string) string {
 	if strings.ContainsAny(s, "'\"") {
 		return s

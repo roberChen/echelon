@@ -25,7 +25,7 @@ const (
 type LogScopeStarted struct {
 	// scopes
 	scopes []string
-	// TODO: time of started?
+	// time is the time of start.
 	time   time.Time
 }
 

@@ -17,10 +17,12 @@ type LogRendered interface {
 	RenderMessage(entry *LogEntryMessage)
 }
 
-// Logger is a log object with a log level, scopes and entries chan.
+// Logger is a log object with a log level, scopes and entries chan.entries Channel 
+// will render all entries it receive after calling (*Logger).streamEntries function
 type Logger struct {
 	level          LogLevel
 	scopes         []string
+	// entriesChannel will render all entries it receive after calling (*Logger).streamEntries function
 	entriesChannel chan *genericLogEntry
 }
 
@@ -64,26 +66,32 @@ func (logger *Logger) streamEntries(renderer LogRendered) {
 	}
 }
 
+// Tracef will print trace info
 func (logger *Logger) Tracef(format string, args ...interface{}) {
 	logger.Logf(TraceLevel, format, args...)
 }
 
+// Debugf will print debug info
 func (logger *Logger) Debugf(format string, args ...interface{}) {
 	logger.Logf(DebugLevel, format, args...)
 }
 
+// Infof will print info
 func (logger *Logger) Infof(format string, args ...interface{}) {
 	logger.Logf(InfoLevel, format, args...)
 }
 
+// Warnf will print warnning info
 func (logger *Logger) Warnf(format string, args ...interface{}) {
 	logger.Logf(WarnLevel, format, args...)
 }
 
+// Errorf will print error
 func (logger *Logger) Errorf(format string, args ...interface{}) {
 	logger.Logf(ErrorLevel, format, args...)
 }
 
+// Logf sends a log entry message with LogLevel level to logger entries chan
 func (logger *Logger) Logf(level LogLevel, format string, args ...interface{}) {
 	if logger.IsLogLevelEnabled(level) {
 		logger.entriesChannel <- &genericLogEntry{
@@ -92,12 +100,15 @@ func (logger *Logger) Logf(level LogLevel, format string, args ...interface{}) {
 	}
 }
 
+// Finish will finsh a log with success status (true for succeed, false for failed),
+// it will sends a NewLogScopeFinished to entries chan of logger
 func (logger *Logger) Finish(success bool) {
 	logger.entriesChannel <- &genericLogEntry{
 		LogFinished: NewLogScopeFinished(success, logger.scopes...),
 	}
 }
 
+// IsLogLevelEnabled returns wheter a log will print to Writer
 func (logger *Logger) IsLogLevelEnabled(level LogLevel) bool {
 	return level <= logger.level
 }

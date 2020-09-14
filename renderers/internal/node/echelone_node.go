@@ -13,6 +13,10 @@ import (
 
 const defaultVisibleLines = 5
 
+// EchelonNode is a log node, it is designed for coroutine safe object
+//
+// It has title with specific title color. it's max visible lines can be specified.
+// A node has children nodes.
 type EchelonNode struct {
 	lock                    sync.RWMutex
 	done                    sync.WaitGroup
@@ -27,18 +31,22 @@ type EchelonNode struct {
 	children                []*EchelonNode
 }
 
+// StartNewEchelonNode will create new EchelonNode with title and configuration, and start it.
 func StartNewEchelonNode(title string, config *config.InteractiveRendererConfig) *EchelonNode {
 	result := NewEchelonNode(title, config)
 	result.Start()
 	return result
 }
 
+// NewEchelonNode will create new EchelonNode, and set startTime the function calling time
 func NewEchelonNode(title string, config *config.InteractiveRendererConfig) *EchelonNode {
 	zeroTime := time.Time{}
 	result := &EchelonNode{
+		// the default status is pause status
 		status:                  "⏸",
 		title:                   title,
 		titleColor:              config.Colors.NeutralColor,
+		// description is the texts will be diplayed to output
 		description:             make([]string, 0),
 		visibleDescriptionLines: defaultVisibleLines,
 		config:                  config,
@@ -50,52 +58,67 @@ func NewEchelonNode(title string, config *config.InteractiveRendererConfig) *Ech
 	return result
 }
 
+// GetChildren will returns all childrens of node, it's a coroutine safe function
 func (node *EchelonNode) GetChildren() []*EchelonNode {
 	node.lock.RLock()
 	defer node.lock.RUnlock()
 	return node.children
 }
 
+// UpdateTitle will update title of node, it's a coroutine safe function
 func (node *EchelonNode) UpdateTitle(text string) {
 	node.lock.Lock()
 	defer node.lock.Unlock()
 	node.title = text
 }
 
+// UpdateConfig will update configuration of node, it's a coroutine safe function
 func (node *EchelonNode) UpdateConfig(config *config.InteractiveRendererConfig) {
 	node.lock.Lock()
 	defer node.lock.Unlock()
 	node.config = config
 }
 
+// ClearAllChildren will remove all children nodes of current node, it's a coroutine
+// safe function
 func (node *EchelonNode) ClearAllChildren() {
 	node.lock.Lock()
 	defer node.lock.Unlock()
 	node.children = make([]*EchelonNode, 0)
 }
 
+// ClearDescription will clean description of node, it will set description
+// as a empty string list. it's a coroutine safe function
 func (node *EchelonNode) ClearDescription() {
 	node.SetDescription(make([]string, 0))
 }
 
+// SetDescription will set description of node, it's a coroutine safe function.
 func (node *EchelonNode) SetDescription(description []string) {
 	node.lock.Lock()
 	defer node.lock.Unlock()
 	node.description = description
 }
 
+// SetVisibleDescriptionLines will set max line number allowed to display for node.
+// It's a coroutine safe function
 func (node *EchelonNode) SetVisibleDescriptionLines(count int) {
 	node.lock.Lock()
 	defer node.lock.Unlock()
 	node.visibleDescriptionLines = count
 }
 
+// DescriptionLength returns the length of description of node. It's a coroutine safe function
 func (node *EchelonNode) DescriptionLength() int {
 	node.lock.RLock()
 	defer node.lock.RUnlock()
 	return len(node.description)
 }
 
+// Render function will output the rendered text of a node, with it's sub nodes.
+//
+// If the sub nodes lines are greater than max limitation, it will use '...' to
+// replace some head lines.
 func (node *EchelonNode) Render() []string {
 	title := node.fancyTitle()
 	tail := node.renderChildren()
@@ -113,6 +136,8 @@ func (node *EchelonNode) Render() []string {
 		indent = "   " // three spaces since title start with a wide emoji
 	}
 	result := []string{title}
+	// add ident for each line and put to result, the indent is added recursively for each out
+	// put line
 	for _, descriptionLine := range tail {
 		result = append(result, indent+descriptionLine)
 	}
@@ -120,6 +145,7 @@ func (node *EchelonNode) Render() []string {
 	return result
 }
 
+// renderChildren will render all childs nodes and return the line strings.
 func (node *EchelonNode) renderChildren() []string {
 	node.lock.RLock()
 	defer node.lock.RUnlock()
@@ -130,6 +156,14 @@ func (node *EchelonNode) renderChildren() []string {
 	return result
 }
 
+// fancyTitle will decorate title. It's a coroutine safe function
+//
+// It will decorate with prefix which shows the status of node(stop, running, succeeded, failed),
+// the colored title and spent time.
+// 
+// If the node has children, it won't show the decimal of time. The structure will be like:
+//
+// prefix+title+spendtime
 func (node *EchelonNode) fancyTitle() string {
 	duration := utils.FormatDuration(node.ExecutionDuration(), len(node.children) == 0)
 	isRunning := node.IsRunning()
@@ -147,6 +181,10 @@ func (node *EchelonNode) fancyTitle() string {
 	return fmt.Sprintf("%s %s %s", prefix, coloredTitle, duration)
 }
 
+// ExecutionDuration will returns the spent time of node, it's a coroutine safe function
+//
+// If the node is still in progress, it returns the passed time since the start of a node,
+// else it returns the total time of a node spent.
 func (node *EchelonNode) ExecutionDuration() time.Duration {
 	node.lock.RLock()
 	defer node.lock.RUnlock()
@@ -156,30 +194,37 @@ func (node *EchelonNode) ExecutionDuration() time.Duration {
 	return node.endTime.Sub(node.startTime)
 }
 
+// HasStarted returns wheter a node has started, a finished node is also started. This
+// is a coroutine safe function
 func (node *EchelonNode) HasStarted() bool {
 	node.lock.RLock()
 	defer node.lock.RUnlock()
 	return !node.startTime.IsZero()
 }
 
+// HasCompleted returns wheter a node  has completed, it's a coroutine safe function
 func (node *EchelonNode) HasCompleted() bool {
 	node.lock.RLock()
 	defer node.lock.RUnlock()
 	return !node.endTime.IsZero()
 }
 
+// IsRunning returns wheter a node is running, it's a coroutine safe function
 func (node *EchelonNode) IsRunning() bool {
 	node.lock.RLock()
 	defer node.lock.RUnlock()
 	return !node.startTime.IsZero() && node.endTime.IsZero()
 }
 
+// StartNewChild will create a child node with current node configuration for node
 func (node *EchelonNode) StartNewChild(childName string) *EchelonNode {
 	child := StartNewEchelonNode(childName, node.config)
 	node.AddNewChild(child)
 	return child
 }
 
+// FindOrCreateChild will return the last child node with specific node title
+// if the node doesn't exist, it will create one. It's a coroutine safe function
 func (node *EchelonNode) FindOrCreateChild(childTitle string) *EchelonNode {
 	node.lock.Lock()
 	defer node.lock.Unlock()
@@ -195,12 +240,14 @@ func (node *EchelonNode) FindOrCreateChild(childTitle string) *EchelonNode {
 	return child
 }
 
+// AddNewChild will add child node for node. It's a coroutine safe function
 func (node *EchelonNode) AddNewChild(child *EchelonNode) {
 	node.lock.Lock()
 	defer node.lock.Unlock()
 	node.children = append(node.children, child)
 }
 
+// Start will start node, it sets the start time. It's a coroutine safe function
 func (node *EchelonNode) Start() {
 	node.lock.Lock()
 	defer node.lock.Unlock()
@@ -209,6 +256,8 @@ func (node *EchelonNode) Start() {
 	}
 }
 
+// CompleteWithColor will stop a node with specific status and color. It's a coroutine
+// safe function
 func (node *EchelonNode) CompleteWithColor(status string, titleColor int) {
 	if !node.endTime.IsZero() {
 		return
@@ -224,6 +273,7 @@ func (node *EchelonNode) CompleteWithColor(status string, titleColor int) {
 	node.done.Done()
 }
 
+// Complete will stop a node. It's a coroutine safe function
 func (node *EchelonNode) Complete() {
 	if !node.endTime.IsZero() {
 		return
@@ -237,22 +287,27 @@ func (node *EchelonNode) Complete() {
 	node.done.Done()
 }
 
+// SetTitleColor will set color of node title, it's a coroutine safe function
 func (node *EchelonNode) SetTitleColor(ansiColor int) {
 	node.lock.Lock()
 	defer node.lock.Unlock()
 	node.titleColor = ansiColor
 }
 
+// SetStatus will set status off node, it's a coroutine safe function
 func (node *EchelonNode) SetStatus(text string) {
 	node.lock.Lock()
 	defer node.lock.Unlock()
 	node.status = text
 }
 
+// WaitCompletion will wait the node to complete, it won't wait child nodes
 func (node *EchelonNode) WaitCompletion() {
 	node.done.Wait()
 }
 
+// AppendDescription will add text which might be multilines to node description, it
+// won't start new line at the end of description. It's a coroutine safe function.
 func (node *EchelonNode) AppendDescription(text string) {
 	if node.HasCompleted() {
 		return

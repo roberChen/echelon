@@ -12,6 +12,12 @@ const (
 	minutesInHour   = 60
 )
 
+// FormatDuration will formart time output
+//
+// If the time duration is no longer than 10s, it will print decimal if showDecimal is true.
+// If the time duration is no longer than 1min, it will print the seconds.
+// If the time duration is no longer than 1h, it will print as min:sec (each with two width).
+// If the time duration is longer than 1h, it will print like h:m:s (each with two width).
 func FormatDuration(duration time.Duration, showDecimals bool) string {
 	if duration < 10*time.Second && showDecimals {
 		return fmt.Sprintf("%.1fs", float64(duration.Milliseconds())/millisInSecond)

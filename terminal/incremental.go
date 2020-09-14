@@ -8,13 +8,18 @@ import (
 const (
 	eraseLine           = "\x1B[K" // clear entire line
 	eraseCursorDown     = "\x1B[J" // erase whole line
-	moveBeginningOfLine = "\r"
+	moveBeginningOfLine = "\r"     // put cursor back to start of line
 )
 
+// CalculateIncrementalUpdateMaxLines will update frames to output with lines limitation. 
+//
+// The linesBefore is the prevoius frame, and the linesAfter is the newer frames waiting to output.
+// The maxLines is the maximum lines allowed to output.
 func CalculateIncrementalUpdateMaxLines(output *bufio.Writer, linesBefore []string, linesAfter []string, maxLines int) {
 	if len(linesBefore) > maxLines || len(linesAfter) > maxLines {
 		linesToIgnoreBefore := len(linesBefore) - maxLines
 		linesToIgnoreAfter := len(linesAfter) - maxLines
+		// linesToIgnore is the bigger line number to ingore.
 		linesToIgnore := linesToIgnoreBefore
 		if linesToIgnore < linesToIgnoreAfter {
 			linesToIgnore = linesToIgnoreAfter
@@ -25,6 +30,7 @@ func CalculateIncrementalUpdateMaxLines(output *bufio.Writer, linesBefore []stri
 	CalculateIncrementalUpdate(output, linesBefore, linesAfter)
 }
 
+// removeFirstElememts will delete linesToIgnore elements of lines.
 func removeFirstElements(lines []string, linesToIgnore int) []string {
 	if len(lines) >= linesToIgnore {
 		return lines[linesToIgnore:]
@@ -32,6 +38,8 @@ func removeFirstElements(lines []string, linesToIgnore int) []string {
 	return make([]string, 0)
 }
 
+// CalculateIncrementalUpdate will update the output frame to output. the linesBefore is the prevoius frame,
+// and the linesAfter is the newer frame waiting to output
 func CalculateIncrementalUpdate(output *bufio.Writer, linesBefore []string, linesAfter []string) {
 	commonElements := commonElementsCount(linesBefore, linesAfter)
 	if commonElements > 0 {
@@ -85,6 +93,7 @@ func CalculateIncrementalUpdate(output *bufio.Writer, linesBefore []string, line
 	_ = output.Flush()
 }
 
+// commonElementsCount returns the number of lines of the same head of two strings
 func commonElementsCount(one []string, two []string) int {
 	oneCount := len(one)
 	twoCount := len(two)
