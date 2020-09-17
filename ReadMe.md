@@ -1,6 +1,6 @@
 # Echelon - hierarchical progress in terminals
 
-[![Build Status](https://api.cirrus-ci.com/github/roberChen/echelon.svg)](https://cirrus-ci.com/github/cirruslabs/echelon)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/roberChen/echelon)](https://pkg.go.dev/github.com/roberChen/echelon)
 
 Cross-platform library to organize logs in a hierarchical structure.
 
@@ -8,6 +8,7 @@ Here is an example how it looks for running Dockerized tasks via [Cirrus CLI](ht
 
 ![Cirrus CLI Demo](images/cirrus-cli-demo.gif)
 
+Logger with progress bar:
 [![asciicast](https://asciinema.org/a/GwKKnu5Z5J7hqQB4pON5o806W.svg)](https://asciinema.org/a/GwKKnu5Z5J7hqQB4pON5o806W)
 ## Features
 
@@ -20,4 +21,4 @@ Here is an example how it looks for running Dockerized tasks via [Cirrus CLI](ht
 
 ## Example
 
-Please check `demo` folder for a simple example or how *echelon* is used in [Cirrus CLI](https://github.com/roberChen/cirrus-cli).
+Please check [demo.go](demo/main.go) for a simple example or how *echelon* is used in [Cirrus CLI](https://github.com/roberChen/cirrus-cli).
