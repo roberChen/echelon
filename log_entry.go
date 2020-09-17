@@ -19,20 +19,29 @@ const (
 	DebugLevel
 	// TraceLevel will output trace info
 	TraceLevel
+
+	// NoProgress refers that the node is not a progress bar
+	NoProgress = 0
+	// DefaultProgress refers that the node has progress bar without known progress size
+	DefaultProgress = 100
 )
 
 // LogScopeStarted sends start message to with time stamp to node specified by scopes
 type LogScopeStarted struct {
 	// scopes
 	scopes []string
+	// total is setted for progress bar
+	total int64
 	// time is the time of start.
 	time   time.Time
 }
 
-// NewLogScopeStarted will create a LogScopeStarted with LogScopeStarted.scopes is scpoes
-func NewLogScopeStarted(scopes ...string) *LogScopeStarted {
+// NewLogScopeStarted will create a LogScopeStarted with LogScopeStarted. scopes is path of log.
+// If the total is not 0, then it starts a log with progress bar
+func NewLogScopeStarted(total int64,scopes ...string) *LogScopeStarted {
 	return &LogScopeStarted{
 		scopes: scopes,
+		total: total,
 		time:   time.Now(),
 	}
 }
@@ -40,6 +49,11 @@ func NewLogScopeStarted(scopes ...string) *LogScopeStarted {
 // GetScopes will return scopes path of entry
 func (entry *LogScopeStarted) GetScopes() []string {
 	return entry.scopes
+}
+
+// GetProgressSize returns size of progress
+func (entry *LogScopeStarted) GetProgressSize() int64 {
+	return entry.total
 }
 
 // LogScopeFinished sends finished message and finish status(succeed or failed) to node specified with path 

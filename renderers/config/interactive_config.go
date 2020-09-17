@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// InteractiveRendererConfig is a structure which defines config of interactive renderer
 type InteractiveRendererConfig struct {
 	Colors                         *terminal.ColorSchema
 	RefreshRate                    time.Duration
@@ -16,6 +17,7 @@ type InteractiveRendererConfig struct {
 	DescriptionLinesWhenFailed     int
 }
 
+// NewDefaultRenderingConfig returns default config for current system
 func NewDefaultRenderingConfig() *InteractiveRendererConfig {
 	if runtime.GOOS == "windows" {
 		return NewDefaultWindowsRenderingConfig()
@@ -23,6 +25,7 @@ func NewDefaultRenderingConfig() *InteractiveRendererConfig {
 	return NewDefaultUnixRenderingConfig()
 }
 
+// NewDefaultUnixRenderingConfig returns default config for *nix
 func NewDefaultUnixRenderingConfig() *InteractiveRendererConfig {
 	//nolint:gomnd
 	return &InteractiveRendererConfig{
@@ -38,6 +41,7 @@ func NewDefaultUnixRenderingConfig() *InteractiveRendererConfig {
 	}
 }
 
+// NewDefaultWindowsRenderingConfig returns default config for Windows
 func NewDefaultWindowsRenderingConfig() *InteractiveRendererConfig {
 	//nolint:gomnd
 	return &InteractiveRendererConfig{
@@ -53,6 +57,7 @@ func NewDefaultWindowsRenderingConfig() *InteractiveRendererConfig {
 	}
 }
 
+// CurrentProgressIndicatorFrame returns current status
 func (config *InteractiveRendererConfig) CurrentProgressIndicatorFrame() string {
 	amountOfFrames := int64(len(config.ProgressIndicatorFrames))
 	nanosPerFrame := int64(config.ProgressIndicatorCycleDuration) / amountOfFrames

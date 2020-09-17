@@ -45,7 +45,7 @@ func NewInteractiveRenderer(out *os.File, rendererConfig *config.InteractiveRend
 		rootNode:       node.NewEchelonNode("root", console.TerminalWidth(out), rendererConfig),
 		config:         rendererConfig,
 		terminalHeight: console.TerminalHeight(out),
-		terminalWidth: console.TerminalWidth(out),
+		terminalWidth:  console.TerminalWidth(out),
 	}
 }
 
@@ -61,7 +61,7 @@ func findScopedNode(scopes []string, r *InteractiveRenderer) *node.EchelonNode {
 
 // RenderScopeStarted starts render the node specified by the entry
 func (r *InteractiveRenderer) RenderScopeStarted(entry *echelon.LogScopeStarted) {
-	findScopedNode(entry.GetScopes(), r).Start()
+	findScopedNode(entry.GetScopes(), r).Start(entry.GetProgressSize())
 }
 
 // RenderScopeFinished will render an finished node specified by entry.
@@ -76,6 +76,10 @@ func (r *InteractiveRenderer) RenderScopeFinished(entry *echelon.LogScopeFinishe
 			n.ClearDescription()
 		}
 		n.CompleteWithColor(r.config.SuccessStatus, r.config.Colors.SuccessColor)
+		// succeed, set progress to full
+		if n.Pbar != nil {
+			n.Pbar.SetPercentage(100)
+		}
 	} else {
 		n.SetVisibleDescriptionLines(r.config.DescriptionLinesWhenFailed)
 		n.CompleteWithColor(r.config.FailureStatus, r.config.Colors.FailureColor)

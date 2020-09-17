@@ -5,7 +5,7 @@ type genericLogEntry struct {
 	LogStarted  *LogScopeStarted
 	LogFinished *LogScopeFinished
 	LogEntry    *LogEntryMessage
-	LogProcess *LogProcessMessage
+	LogProcess  *LogProcessMessage
 }
 
 // LogRenderer interface defines a log which can start/finish and render
@@ -47,7 +47,33 @@ func (logger *Logger) Scoped(scope string) *Logger {
 		entriesChannel: logger.entriesChannel,
 	}
 	result.entriesChannel <- &genericLogEntry{
-		LogStarted: NewLogScopeStarted(result.scopes...),
+		LogStarted: NewLogScopeStarted(NoProgress, result.scopes...),
+	}
+	return result
+}
+
+// Bar creates a node with progress bar and name (scope)
+func (logger *Logger) Bar(scope string) *Logger {
+	result := &Logger{
+		level:          logger.level,
+		scopes:         append(logger.scopes, scope),
+		entriesChannel: logger.entriesChannel,
+	}
+	result.entriesChannel <- &genericLogEntry{
+		LogStarted: NewLogScopeStarted(DefaultProgress, result.scopes...),
+	}
+	return result
+}
+
+// BarWithSize creates a node with progress bar which has a certain progress size and name (scope)
+func (logger *Logger) BarWithSize(total int64, scope string) *Logger {
+	result := &Logger{
+		level:          logger.level,
+		scopes:         append(logger.scopes, scope),
+		entriesChannel: logger.entriesChannel,
+	}
+	result.entriesChannel <- &genericLogEntry{
+		LogStarted: NewLogScopeStarted(total, result.scopes...),
 	}
 	return result
 }
@@ -65,6 +91,9 @@ func (logger *Logger) streamEntries(renderer LogRenderer) {
 		}
 		if entry.LogEntry != nil {
 			renderer.RenderMessage(entry.LogEntry)
+		}
+		if entry.LogProcess != nil {
+			renderer.RenderProcess(entry.LogProcess)
 		}
 	}
 }
@@ -124,6 +153,7 @@ func (logger *Logger) SetProgress(progress int64) {
 		LogProcess: pm,
 	}
 }
+
 // AddProgress will add progress of logger
 func (logger *Logger) AddProgress(addprogress int64) {
 	pm := NewLogProcessMessage(logger.scopes...)
@@ -132,6 +162,7 @@ func (logger *Logger) AddProgress(addprogress int64) {
 		LogProcess: pm,
 	}
 }
+
 // SetPercentage will sets progress of logger
 func (logger *Logger) SetPercentage(percentage int) {
 	pm := NewLogProcessMessage(logger.scopes...)
@@ -140,6 +171,7 @@ func (logger *Logger) SetPercentage(percentage int) {
 		LogProcess: pm,
 	}
 }
+
 // AddPercentage will sets progress of logger
 func (logger *Logger) AddPercentage(addpercentage int) {
 	pm := NewLogProcessMessage(logger.scopes...)

@@ -32,11 +32,13 @@ func generateNode(log *echelon.Logger, magicConstant int) {
 			generateNode(log, magicConstant-1)
 		} else {
 			childJobID := atomic.AddUint64(&jobIDCounter, 1)
-			child := scoped.Scoped(fmt.Sprintf("Job %d", childJobID))
+			child := scoped.Bar(fmt.Sprintf("Job %d", childJobID))
 			subJobDuration := rand.Intn(magicConstant)
 			for waitSecond := 0; waitSecond < subJobDuration; waitSecond++ {
 				time.Sleep(time.Second)
-				child.Infof("Doing very important jobs! Completed %d/100...", 100*(waitSecond+1)/subJobDuration)
+				progress := 100*(waitSecond+1)/subJobDuration
+				child.Infof("Doing very important jobs! Completed %d/100...", progress )
+				child.SetPercentage(progress)
 			}
 			child.Finish(true)
 		}

@@ -1,6 +1,6 @@
 # Echelon - hierarchical progress in terminals
 
-[![Build Status](https://api.cirrus-ci.com/github/roberChen/echelon.svg)](https://cirrus-ci.com/github/roberChen/echelon)
+[![Build Status](https://api.cirrus-ci.com/github/roberChen/echelon.svg)](https://cirrus-ci.com/github/cirruslabs/echelon)
 
 Cross-platform library to organize logs in a hierarchical structure.
 
@@ -8,6 +8,7 @@ Here is an example how it looks for running Dockerized tasks via [Cirrus CLI](ht
 
 ![Cirrus CLI Demo](images/cirrus-cli-demo.gif)
 
+[![asciicast](https://asciinema.org/a/GwKKnu5Z5J7hqQB4pON5o806W.svg)](https://asciinema.org/a/GwKKnu5Z5J7hqQB4pON5o806W)
 ## Features
 
 * Customizable and works with any VT100 compatible terminal

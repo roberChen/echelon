@@ -38,11 +38,10 @@ type EchelonNode struct {
 	width int
 }
 
-
 // StartNewEchelonNode will create new EchelonNode with title and configuration, and start it.
-func StartNewEchelonNode(title string,width int, config *config.InteractiveRendererConfig) *EchelonNode {
+func StartNewEchelonNode(title string, width int, total int64, config *config.InteractiveRendererConfig) *EchelonNode {
 	result := NewEchelonNode(title, width, config)
-	result.Start()
+	result.Start(total)
 	return result
 }
 
@@ -51,9 +50,9 @@ func NewEchelonNode(title string, width int, config *config.InteractiveRendererC
 	zeroTime := time.Time{}
 	result := &EchelonNode{
 		// the default status is pause status
-		status:                  "⏸",
-		title:                   title,
-		titleColor:              config.Colors.NeutralColor,
+		status:     "⏸",
+		title:      title,
+		titleColor: config.Colors.NeutralColor,
 		// description is the texts will be diplayed to output
 		description:             make([]string, 0),
 		visibleDescriptionLines: defaultVisibleLines,
@@ -139,7 +138,7 @@ func (node *EchelonNode) render(indent int) []string {
 	newindent := indent + 2 // two spaces by default
 	props, _ := width.LookupString(title)
 	if props.Kind() == width.EastAsianWide || props.Kind() == width.EastAsianFullwidth {
-		newindent++  // three spaces since title start with a wide emoji, thus indent expands 3 in total
+		newindent++ // three spaces since title start with a wide emoji, thus indent expands 3 in total
 	}
 	result := []string{title}
 	result = append(result, node.renderChildren(newindent)...)
@@ -149,12 +148,12 @@ func (node *EchelonNode) render(indent int) []string {
 	sindent := strings.Repeat(" ", newindent)
 	if len(node.description) > node.visibleDescriptionLines && node.visibleDescriptionLines >= 0 {
 		result = append(result, sindent+"...")
-		for _, line := range node.description[(len(node.description)-node.visibleDescriptionLines):] {
-			result = append(result, sindent+ line)
+		for _, line := range node.description[(len(node.description) - node.visibleDescriptionLines):] {
+			result = append(result, sindent+line)
 		}
 	} else {
 		for _, line := range node.description {
-			result = append(result, sindent + line)
+			result = append(result, sindent+line)
 		}
 	}
 
@@ -177,7 +176,7 @@ func (node *EchelonNode) renderChildren(indent int) []string {
 //
 // It will decorate with prefix which shows the status of node(stop, running, succeeded, failed),
 // the colored title and spent time.
-// 
+//
 // If the node has children, it won't show the decimal of time. The structure will be like:
 //
 // indent space+prefix+title+spendtime
@@ -195,13 +194,11 @@ func (node *EchelonNode) fancyTitle(indent int) string {
 	if node.titleColor >= 0 {
 		coloredTitle = terminal.GetColoredText(node.titleColor, node.title)
 	}
-	out := strings.Repeat(" ",indent)+ fmt.Sprintf("%s %s %s", prefix, coloredTitle, duration)
+	out := strings.Repeat(" ", indent) + fmt.Sprintf("%s %s %s", prefix, coloredTitle, duration)
 	// progress bar rendering
 	if node.Pbar != nil {
 		outwidth := runewidth.StringWidth(out)
-		barstr := node.Pbar.String(node.width-outwidth)
-
-		out = out + barstr
+		out = out + node.Pbar.String(node.width - outwidth)
 	}
 	return out
 }
@@ -243,7 +240,7 @@ func (node *EchelonNode) IsRunning() bool {
 
 // StartNewChild will create a child node with current node configuration for node
 func (node *EchelonNode) StartNewChild(childName string) *EchelonNode {
-	child := StartNewEchelonNode(childName, node.width, node.config)
+	child := StartNewEchelonNode(childName, node.width, 0, node.config)
 	node.AddNewChild(child)
 	return child
 }
@@ -260,7 +257,7 @@ func (node *EchelonNode) FindOrCreateChild(childTitle string) *EchelonNode {
 			return child
 		}
 	}
-	child := NewEchelonNode(childTitle, node.width, node.config)
+	child := NewEchelonNode(childTitle, node.width,node.config)
 	node.children = append(node.children, child)
 	return child
 }
@@ -273,11 +270,14 @@ func (node *EchelonNode) AddNewChild(child *EchelonNode) {
 }
 
 // Start will start node, it sets the start time. It's a coroutine safe function
-func (node *EchelonNode) Start() {
+func (node *EchelonNode) Start(total int64) {
 	node.lock.Lock()
 	defer node.lock.Unlock()
 	if node.startTime.IsZero() {
 		node.startTime = time.Now()
+	}
+	if total != 0 {
+		node.Pbar = NewBar(total, nil )
 	}
 }
 
