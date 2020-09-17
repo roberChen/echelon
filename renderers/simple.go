@@ -81,6 +81,10 @@ func (r SimpleRenderer) RenderMessage(entry *echelon.LogEntryMessage) {
 	r.renderEntry(entry.GetMessage())
 }
 
+// RenderProcess function of SimpleRenderer, it will do nothing, simple renderer doesn't 
+// support process rendering
+func (r SimpleRenderer) RenderProcess(entry *echelon.LogProcessMessage) {}
+
 // renderEntry will render message of simple renderer, it directly output the message to io.Writer of SimpleRenderer
 func (r SimpleRenderer) renderEntry(message string) {
 	_, _ = r.out.Write([]byte(message + "\n"))

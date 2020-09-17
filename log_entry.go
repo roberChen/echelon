@@ -21,7 +21,7 @@ const (
 	TraceLevel
 )
 
-// LogScopeStarted is a log with scope path and it's time
+// LogScopeStarted sends start message to with time stamp to node specified by scopes
 type LogScopeStarted struct {
 	// scopes
 	scopes []string
@@ -42,7 +42,7 @@ func (entry *LogScopeStarted) GetScopes() []string {
 	return entry.scopes
 }
 
-// LogScopeFinished is a finished structure with path and finish status(succeed or failed)
+// LogScopeFinished sends finished message and finish status(succeed or failed) to node specified with path 
 type LogScopeFinished struct {
 	scopes  []string
 	success bool
@@ -66,7 +66,7 @@ func (entry *LogScopeFinished) GetScopes() []string {
 	return entry.scopes
 }
 
-// LogEntryMessage is a log with certain level, path
+// LogEntryMessage is a struct sends new message with certain level to node specified by scopes
 type LogEntryMessage struct {
 	// Level is level o Log
 	Level     LogLevel
@@ -94,5 +94,26 @@ func (entry *LogEntryMessage) GetMessage() string {
 
 // GetScopes returns the path of scope
 func (entry *LogEntryMessage) GetScopes() []string {
+	return entry.scopes
+}
+
+// LogProcessMessage sends progress message to node specified by scopes
+type LogProcessMessage struct {
+	Progress int64
+	Addprogress int64
+	Percentage int
+	Addpercentage int
+	scopes []string
+}
+
+// NewLogProcessMessage creates a log process
+func NewLogProcessMessage(scopes... string) *LogProcessMessage {
+	return &LogProcessMessage{
+		scopes: scopes,
+	}
+}
+
+// GetScopes returns scopes of entry
+func (entry *LogProcessMessage) GetScopes() []string {
 	return entry.scopes
 }

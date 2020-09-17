@@ -2,18 +2,20 @@ package node
 
 import (
 	"fmt"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/mattn/go-runewidth"
 	"github.com/roberChen/echelon/renderers/config"
 	"github.com/roberChen/echelon/terminal"
 	"github.com/roberChen/echelon/utils"
 	"golang.org/x/text/width"
-	"strings"
-	"sync"
-	"time"
 )
 
 const defaultVisibleLines = 5
 
-// EchelonNode is a log node, it is designed for coroutine safe object
+// EchelonNode is a log node for interactive renderer, it is designed for coroutine safe object
 //
 // It has title with specific title color. it's max visible lines can be specified.
 // A node has children nodes.
@@ -29,17 +31,23 @@ type EchelonNode struct {
 	startTime               time.Time
 	endTime                 time.Time
 	children                []*EchelonNode
+
+	// bar setting
+	Pbar *Bar
+	// terminal width
+	width int
 }
 
+
 // StartNewEchelonNode will create new EchelonNode with title and configuration, and start it.
-func StartNewEchelonNode(title string, config *config.InteractiveRendererConfig) *EchelonNode {
-	result := NewEchelonNode(title, config)
+func StartNewEchelonNode(title string,width int, config *config.InteractiveRendererConfig) *EchelonNode {
+	result := NewEchelonNode(title, width, config)
 	result.Start()
 	return result
 }
 
 // NewEchelonNode will create new EchelonNode, and set startTime the function calling time
-func NewEchelonNode(title string, config *config.InteractiveRendererConfig) *EchelonNode {
+func NewEchelonNode(title string, width int, config *config.InteractiveRendererConfig) *EchelonNode {
 	zeroTime := time.Time{}
 	result := &EchelonNode{
 		// the default status is pause status
@@ -53,6 +61,8 @@ func NewEchelonNode(title string, config *config.InteractiveRendererConfig) *Ech
 		startTime:               zeroTime,
 		endTime:                 zeroTime,
 		children:                make([]*EchelonNode, 0),
+
+		width: width,
 	}
 	result.done.Add(1)
 	return result
@@ -120,51 +130,58 @@ func (node *EchelonNode) DescriptionLength() int {
 // If the sub nodes lines are greater than max limitation, it will use '...' to
 // replace some head lines.
 func (node *EchelonNode) Render() []string {
-	title := node.fancyTitle()
-	tail := node.renderChildren()
-	node.lock.RLock()
-	defer node.lock.RUnlock()
-	if len(node.description) > node.visibleDescriptionLines && node.visibleDescriptionLines >= 0 {
-		tail = append(tail, "...")
-		tail = append(tail, node.description[(len(node.description)-node.visibleDescriptionLines):]...)
-	} else {
-		tail = append(tail, node.description...)
-	}
-	indent := "  " // two spaces by default
+	return node.render(0)
+}
+
+// returns strings with start indent space
+func (node *EchelonNode) render(indent int) []string {
+	title := node.fancyTitle(indent)
+	newindent := indent + 2 // two spaces by default
 	props, _ := width.LookupString(title)
 	if props.Kind() == width.EastAsianWide || props.Kind() == width.EastAsianFullwidth {
-		indent = "   " // three spaces since title start with a wide emoji
+		newindent++  // three spaces since title start with a wide emoji, thus indent expands 3 in total
 	}
 	result := []string{title}
-	// add ident for each line and put to result, the indent is added recursively for each out
-	// put line
-	for _, descriptionLine := range tail {
-		result = append(result, indent+descriptionLine)
+	result = append(result, node.renderChildren(newindent)...)
+	node.lock.RLock()
+	defer node.lock.RUnlock()
+	// add indent for descriptions
+	sindent := strings.Repeat(" ", newindent)
+	if len(node.description) > node.visibleDescriptionLines && node.visibleDescriptionLines >= 0 {
+		result = append(result, sindent+"...")
+		for _, line := range node.description[(len(node.description)-node.visibleDescriptionLines):] {
+			result = append(result, sindent+ line)
+		}
+	} else {
+		for _, line := range node.description {
+			result = append(result, sindent + line)
+		}
 	}
 
 	return result
 }
 
-// renderChildren will render all childs nodes and return the line strings.
-func (node *EchelonNode) renderChildren() []string {
+// renderChildren will render all childs nodes with specific indent and return the line strings.
+func (node *EchelonNode) renderChildren(indent int) []string {
 	node.lock.RLock()
 	defer node.lock.RUnlock()
 	var result []string
 	for _, child := range node.children {
-		result = append(result, child.Render()...)
+		result = append(result, child.render(indent)...)
 	}
 	return result
 }
 
-// fancyTitle will decorate title. It's a coroutine safe function
+// fancyTitle will decorate title with specific indent. It renders the node it self.
+// It's a coroutine safe function
 //
 // It will decorate with prefix which shows the status of node(stop, running, succeeded, failed),
 // the colored title and spent time.
 // 
 // If the node has children, it won't show the decimal of time. The structure will be like:
 //
-// prefix+title+spendtime
-func (node *EchelonNode) fancyTitle() string {
+// indent space+prefix+title+spendtime
+func (node *EchelonNode) fancyTitle(indent int) string {
 	duration := utils.FormatDuration(node.ExecutionDuration(), len(node.children) == 0)
 	isRunning := node.IsRunning()
 
@@ -178,7 +195,15 @@ func (node *EchelonNode) fancyTitle() string {
 	if node.titleColor >= 0 {
 		coloredTitle = terminal.GetColoredText(node.titleColor, node.title)
 	}
-	return fmt.Sprintf("%s %s %s", prefix, coloredTitle, duration)
+	out := strings.Repeat(" ",indent)+ fmt.Sprintf("%s %s %s", prefix, coloredTitle, duration)
+	// progress bar rendering
+	if node.Pbar != nil {
+		outwidth := runewidth.StringWidth(out)
+		barstr := node.Pbar.String(node.width-outwidth)
+
+		out = out + barstr
+	}
+	return out
 }
 
 // ExecutionDuration will returns the spent time of node, it's a coroutine safe function
@@ -218,7 +243,7 @@ func (node *EchelonNode) IsRunning() bool {
 
 // StartNewChild will create a child node with current node configuration for node
 func (node *EchelonNode) StartNewChild(childName string) *EchelonNode {
-	child := StartNewEchelonNode(childName, node.config)
+	child := StartNewEchelonNode(childName, node.width, node.config)
 	node.AddNewChild(child)
 	return child
 }
@@ -235,7 +260,7 @@ func (node *EchelonNode) FindOrCreateChild(childTitle string) *EchelonNode {
 			return child
 		}
 	}
-	child := NewEchelonNode(childTitle, node.config)
+	child := NewEchelonNode(childTitle, node.width, node.config)
 	node.children = append(node.children, child)
 	return child
 }

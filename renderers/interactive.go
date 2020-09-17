@@ -2,25 +2,27 @@ package renderers
 
 import (
 	"bufio"
+	"os"
+	"sync"
+	"time"
+
 	"github.com/roberChen/echelon"
 	"github.com/roberChen/echelon/renderers/config"
 	"github.com/roberChen/echelon/renderers/internal/console"
 	"github.com/roberChen/echelon/renderers/internal/node"
 	"github.com/roberChen/echelon/terminal"
-	"os"
-	"sync"
-	"time"
 )
 
 // resetAutoWrap, \u001B(16) == \033(10) == \x1b(16) == ESC key.
 //
-// ESC[={value}l : Resets the mode by using the same values that 
-// Set Mode uses, except for 7, which disables line wrapping. The 
+// ESC[={value}l : Resets the mode by using the same values that
+// Set Mode uses, except for 7, which disables line wrapping. The
 // last character in this escape sequence is a lowercase L.
 const resetAutoWrap = "\u001B[?7l"
 const defaultFrameBufSize = 38400 // 80 by 120 of 4 bytes UTF-8 characters
 
-// InteractiveRenderer is a interactive rendere which is a dynamic one. 
+// InteractiveRenderer is a interactive rendere which is a dynamic one.
+// It's a implementation of LogRenderer
 //
 // It conains a bufio.Writer for output, a root node and terminal height
 type InteractiveRenderer struct {
@@ -30,6 +32,7 @@ type InteractiveRenderer struct {
 	currentFrameLines []string
 	drawLock          sync.Mutex
 	terminalHeight    int
+	terminalWidth     int
 }
 
 // NewInteractiveRenderer creates a new InteractiveRenderer
@@ -39,9 +42,10 @@ func NewInteractiveRenderer(out *os.File, rendererConfig *config.InteractiveRend
 	}
 	return &InteractiveRenderer{
 		out:            bufio.NewWriterSize(out, defaultFrameBufSize),
-		rootNode:       node.NewEchelonNode("root", rendererConfig),
+		rootNode:       node.NewEchelonNode("root", console.TerminalWidth(out), rendererConfig),
 		config:         rendererConfig,
 		terminalHeight: console.TerminalHeight(out),
+		terminalWidth: console.TerminalWidth(out),
 	}
 }
 
@@ -60,9 +64,9 @@ func (r *InteractiveRenderer) RenderScopeStarted(entry *echelon.LogScopeStarted)
 	findScopedNode(entry.GetScopes(), r).Start()
 }
 
-// RenderScopeFinished will render an finished node specified by entry. 
+// RenderScopeFinished will render an finished node specified by entry.
 //
-// If the node is succeeded, all sub nodes (which must be succeeded as well) will hides. 
+// If the node is succeeded, all sub nodes (which must be succeeded as well) will hides.
 // If the node is failed, the node will keep showing at output with FailureColor(red)
 func (r *InteractiveRenderer) RenderScopeFinished(entry *echelon.LogScopeFinished) {
 	n := findScopedNode(entry.GetScopes(), r)
@@ -82,6 +86,26 @@ func (r *InteractiveRenderer) RenderScopeFinished(entry *echelon.LogScopeFinishe
 // entry to the node.
 func (r *InteractiveRenderer) RenderMessage(entry *echelon.LogEntryMessage) {
 	findScopedNode(entry.GetScopes(), r).AppendDescription(entry.GetMessage() + "\n")
+}
+
+// RenderProcess will set progress of node specified by entry
+func (r *InteractiveRenderer) RenderProcess(entry *echelon.LogProcessMessage) {
+	node := findScopedNode(entry.GetScopes(), r)
+	if node.Pbar == nil {
+		return
+	}
+	if entry.Addpercentage != 0 {
+		node.Pbar.AddPercentage(entry.Addpercentage)
+	}
+	if entry.Percentage != 0 {
+		node.Pbar.SetPercentage(entry.Percentage)
+	}
+	if entry.Progress != 0 {
+		node.Pbar.AddProgress(entry.Progress)
+	}
+	if entry.Addprogress != 0 {
+		node.Pbar.AddProgress(entry.Addprogress)
+	}
 }
 
 // StartDrawing will start drawing Interactiverenderer until the root node has completed
